@@ -106,6 +106,7 @@ class CartItem(models.Model):
             self.products.stock_quantity = models.F('stock_quantity') - diff
             self.quantity = new_quantity
             self.save()
+            self.products.save()
 
     def subtract_from_stock(self):
         """ will subtract item quantity from product stock quantity """

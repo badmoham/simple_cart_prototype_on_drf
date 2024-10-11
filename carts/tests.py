@@ -85,8 +85,8 @@ class CartTest(TestCase):
         cart = Cart.objects.create(user=self.user_1)
         cart_updated_before_api_call = cart.updated
 
-        response = self.client.post(self.add_cart_item_url, headers=headers, data=payload)
-        self.assertEqual(response.request, 201)
+        response = self.client.post(self.add_cart_item_url, content_type='application/json', headers=headers, data=payload)
+        assert response.status_code == 201
 
         user_1_cart_qs = Cart.objects.filter(user=self.user_1)
 
@@ -102,6 +102,7 @@ class CartTest(TestCase):
         assert item.products_id == 1
         assert item.cart_id == 1
 
+        product.refresh_from_db()
         assert product.stock_quantity == 7 - 4
 
         cart.refresh_from_db()
@@ -128,7 +129,7 @@ class CartTest(TestCase):
             ]
         }
 
-        response = self.client.post(self.add_cart_item_url, headers=headers, data=payload)
+        response = self.client.post(self.add_cart_item_url, content_type='application/json', headers=headers, data=payload)
         assert response.status_code == 201
 
         cart.refresh_from_db()
@@ -136,8 +137,9 @@ class CartTest(TestCase):
         item.refresh_from_db()
 
         assert cart.is_dead is False
-        assert item.quantity == 4 + 2
-        assert product.stock_quantity == 7 - (4 + 2)
+        assert item.quantity == 2
+        self.assertEqual(product.stock_quantity, 7 - 2)
+        assert product.stock_quantity == 7 - 2
 
     def test_get_cart_api(self):
         headers = self.get_auth_header(**self.user_1_login_data)
@@ -153,8 +155,8 @@ class CartTest(TestCase):
             {
                 "id": cart.id,
                 "user": self.user_1.id,
-                "updated": cart.updated.isoformat(), # 2024-10-11T00:04:33.319
-                "is_dead": 'false',
+                "updated": cart.updated.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),  # 2024-10-11T00:04:33.319
+                "is_dead": False,
                 "items_cart": [
                     {
                         "id": 1,
@@ -170,6 +172,6 @@ class CartTest(TestCase):
             }
         ]
 
-        response = self.client.get(self.add_cart_item_url, headers=headers)
+        response = self.client.get(self.add_cart_item_url, content_type='application/json', headers=headers)
         assert response.status_code == 200
         self.assertEqual(response.json(), expect_response)
